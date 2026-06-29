@@ -48,3 +48,14 @@ To add a host:
 3. Put native or recommended paths before compatibility paths.
 4. Add or update golden cases when behavior changes.
 5. Keep installer behavior data-driven; do not add host-specific branching unless the generic path resolver cannot express the host.
+
+## Verification
+
+After changing `spec/hosts.json`, regenerate host constants and run the parity gate:
+
+```bash
+make generate
+make check
+```
+
+Use `make generate-check` in CI or review workflows to verify generated host constants are current.

@@ -21,6 +21,21 @@ make hooks
 make check
 ```
 
+## Repository Layout
+
+```text
+spec/hosts.json          host adapter database
+spec/hosts.schema.json   host spec schema
+testdata/                skill fixtures and golden cases
+docs/                    product and contract docs
+examples/                minimal SDK consumer CLIs
+Makefile                 root developer commands
+scripts/check.mjs        spec, fixture, and SDK parity validation
+scripts/sync-hosts.mjs   generated host constants
+```
+
+TypeScript, Go, and Rust SDKs live in `ts/`, `go/`, and `rust/`.
+
 ## Common Commands
 
 ```bash
@@ -30,6 +45,16 @@ make check           # full parity and example gate
 make fmt             # format TypeScript, Go, and Rust files
 make clean           # remove local build outputs
 ```
+
+## Verification
+
+Run the full parity gate before opening a pull request:
+
+```bash
+make check
+```
+
+This validates the shared spec, fixtures, generated host constants, TypeScript, Go, Rust, and examples.
 
 ## Host Adapter Changes
 
@@ -55,7 +80,7 @@ make check
 
 The check must pass locally before claiming parity.
 
-## Release Changes
+## Release
 
 Do not publish packages from a pull request.
 
@@ -66,3 +91,4 @@ Release tags are cut from `main` after `make check` passes. The release workflow
 - `github.com/samzong/kitup/go` through the `go/vX.Y.Z` tag
 - GitHub Release notes
 
+See [docs/RELEASE.md](docs/RELEASE.md) for the release flow, first npm release recovery, and public install smoke check.

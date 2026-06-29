@@ -42,13 +42,13 @@ test-rust:
 examples: example-ts example-go example-rust
 
 example-ts:
-	pnpm --dir $(EXAMPLE_TS_DIR) install-skill
+	tmp="$$(mktemp -d)" && mkdir -p "$$tmp/.codex" && HOME="$$tmp" pnpm --dir $(EXAMPLE_TS_DIR) install-skill
 
 example-go:
-	cd $(EXAMPLE_GO_DIR) && go run .
+	cd $(EXAMPLE_GO_DIR) && tmp="$$(mktemp -d)" && mkdir -p "$$tmp/.codex" && HOME="$$tmp" go run .
 
 example-rust:
-	cargo run --quiet --manifest-path $(EXAMPLE_RUST_DIR)/Cargo.toml
+	cd $(EXAMPLE_RUST_DIR) && tmp="$$(mktemp -d)" && mkdir -p "$$tmp/.codex" && CARGO_HOME="$${CARGO_HOME:-$$HOME/.cargo}" RUSTUP_HOME="$${RUSTUP_HOME:-$$HOME/.rustup}" HOME="$$tmp" cargo run --quiet
 
 fmt: fmt-ts fmt-go fmt-rust
 

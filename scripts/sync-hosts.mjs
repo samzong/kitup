@@ -8,7 +8,7 @@ const hosts = JSON.stringify(JSON.parse(readFileSync(new URL("spec/hosts.json", 
 const files = new Map([
   [
     "ts/src/hosts.generated.ts",
-    `// Code generated from spec/hosts.json. DO NOT EDIT.\n\nexport const defaultHostsSpecJson =\n  '${jsSingleString(hosts)}';\n`,
+    `// Code generated from spec/hosts.json. DO NOT EDIT.\n\n// prettier-ignore\nexport const defaultHostsSpecJson =\n  ${JSON.stringify(hosts)};\n`,
   ],
   [
     "go/hosts_gen.go",
@@ -43,12 +43,4 @@ function rustString(value) {
   let hashes = "";
   while (value.includes(`"${hashes}`)) hashes += "#";
   return `r${hashes}"${value}"${hashes}`;
-}
-
-function jsSingleString(value) {
-  return value
-    .replaceAll("\\", "\\\\")
-    .replaceAll("'", "\\'")
-    .replaceAll("\r", "\\r")
-    .replaceAll("\n", "\\n");
 }

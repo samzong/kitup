@@ -464,12 +464,8 @@ func targetResult(target TargetGroup) map[string]any {
 }
 
 func withReason(result map[string]any, reason string) map[string]any {
-	out := map[string]any{}
-	for key, value := range result {
-		out[key] = value
-	}
-	out["reason"] = reason
-	return out
+	result["reason"] = reason
+	return result
 }
 
 func emptyInstallReport(errs []map[string]any) InstallReport {
@@ -486,10 +482,7 @@ func emptyInstallReport(errs []map[string]any) InstallReport {
 }
 
 func canonicalScopePath(host Host, scope Scope, home, cwd string) string {
-	paths := host.ProjectSkillsDir
-	if scope == UserScope {
-		paths = host.UserSkillsDir
-	}
+	paths := scopePaths(host, scope)
 	if len(paths) == 0 {
 		return ""
 	}
@@ -497,10 +490,7 @@ func canonicalScopePath(host Host, scope Scope, home, cwd string) string {
 }
 
 func chooseScopePath(host Host, scope Scope, home, cwd string) string {
-	paths := host.ProjectSkillsDir
-	if scope == UserScope {
-		paths = host.UserSkillsDir
-	}
+	paths := scopePaths(host, scope)
 	for _, path := range paths {
 		expanded := expandHostPath(path, home, cwd)
 		if exists(expanded) {
@@ -511,6 +501,13 @@ func chooseScopePath(host Host, scope Scope, home, cwd string) string {
 		return ""
 	}
 	return expandHostPath(paths[0], home, cwd)
+}
+
+func scopePaths(host Host, scope Scope) []string {
+	if scope == UserScope {
+		return host.UserSkillsDir
+	}
+	return host.ProjectSkillsDir
 }
 
 func expandHostPath(path, home, cwd string) string {

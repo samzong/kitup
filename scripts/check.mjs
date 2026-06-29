@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 const root = new URL("../", import.meta.url);
@@ -138,17 +139,49 @@ assert(aliases.has("kimi-code-cli"), "kimi-code-cli alias missing");
 
 console.log(`ok: ${hostsSpec.hosts.length} hosts; ${cases.cases.length} cases`);
 
-for (const [name, command, args, cwd] of [
+function detectedEnv(prefix) {
+  const home = mkdtempSync(`${tmpdir()}/${prefix}`);
+  mkdirSync(`${home}/.codex`, { recursive: true });
+  return {
+    CARGO_HOME: process.env.CARGO_HOME ?? `${process.env.HOME}/.cargo`,
+    HOME: home,
+    RUSTUP_HOME: process.env.RUSTUP_HOME ?? `${process.env.HOME}/.rustup`
+  };
+}
+
+for (const [name, command, args, cwd, env] of [
   ["generated-hosts", "node", ["scripts/sync-hosts.mjs", "--check"], rootPath],
   ["typescript", "pnpm", ["--dir", "ts", "test"], rootPath],
   ["go", "go", ["test", "./..."], new URL("../go/", import.meta.url)],
   ["rust", "cargo", ["test"], new URL("../rust/", import.meta.url)],
-  ["example-ts", "pnpm", ["--dir", "examples/ts", "install-skill"], rootPath],
-  ["example-go", "go", ["run", "."], new URL("../examples/go/", import.meta.url)],
-  ["example-rust", "cargo", ["run", "--quiet"], new URL("../examples/rust/", import.meta.url)]
+  [
+    "example-ts",
+    "pnpm",
+    ["--dir", "examples/ts", "install-skill"],
+    rootPath,
+    detectedEnv("kitup-example-ts-")
+  ],
+  [
+    "example-go",
+    "go",
+    ["run", "."],
+    new URL("../examples/go/", import.meta.url),
+    detectedEnv("kitup-example-go-")
+  ],
+  [
+    "example-rust",
+    "cargo",
+    ["run", "--quiet"],
+    new URL("../examples/rust/", import.meta.url),
+    detectedEnv("kitup-example-rust-")
+  ]
 ]) {
   console.log(`\n==> ${name}`);
-  const result = spawnSync(command, args, { cwd, stdio: "inherit" });
+  const result = spawnSync(command, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdio: "inherit"
+  });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
 }

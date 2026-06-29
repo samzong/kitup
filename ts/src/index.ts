@@ -1,8 +1,6 @@
 import { createHash } from "node:crypto";
 import {
-  chmod,
-  copyFile,
-  mkdir,
+  cp,
   readdir,
   readFile,
   rename,
@@ -10,8 +8,7 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { constants } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { defaultHostsSpecJson } from "./hosts.generated.js";
 
 export type Scope = "user" | "project";
@@ -285,57 +282,18 @@ export async function computeContentHash(
 export async function installBundledSkill(
   options: InstallOptions,
 ): Promise<InstallReport> {
-  const cwd = options.cwd ?? process.cwd();
-  const skill = await validateSkill(options.skillDir, cwd);
-  if (!skill.valid || !skill.skillName) {
-    return emptyInstallReport([
-      { skillDir: options.skillDir, reason: skill.errorCode },
-    ]);
-  }
-
-  const skillDir = resolvePath(options.skillDir, cwd);
-  const hash = await computeContentHash(skillDir);
-  const { targets, errors } = await resolveInstallTargets({
-    ...options,
-    skillName: skill.skillName,
-  });
-  const report = emptyInstallReport(errors);
-
-  for (const target of targets) {
-    const result = targetResult(target);
-    const metadata = await readMetadata(target.targetDir);
-    if (!metadata.exists) {
-      await copyManagedSkill(
-        skillDir,
-        target.targetDir,
-        options.appId,
-        skill.skillName,
-        hash,
-      );
-      report.installed.push(result);
-    } else if (!metadata.value) {
-      report.conflicts.push({ ...result, reason: "unmanaged" });
-    } else if (metadata.value.appId !== options.appId) {
-      report.conflicts.push({ ...result, reason: "owner-mismatch" });
-    } else if (metadata.value.hash === hash) {
-      report.skipped.push({ ...result, reason: "unchanged" });
-    } else {
-      await replaceManagedSkill(
-        skillDir,
-        target.targetDir,
-        options.appId,
-        skill.skillName,
-        hash,
-      );
-      report.updated.push(result);
-    }
-  }
-
-  return report;
+  return installOrPlan(options, true);
 }
 
 export async function planBundledSkill(
   options: InstallOptions,
+): Promise<InstallReport> {
+  return installOrPlan(options, false);
+}
+
+async function installOrPlan(
+  options: InstallOptions,
+  write: boolean,
 ): Promise<InstallReport> {
   const cwd = options.cwd ?? process.cwd();
   const skill = await validateSkill(options.skillDir, cwd);
@@ -357,6 +315,15 @@ export async function planBundledSkill(
     const result = targetResult(target);
     const metadata = await readMetadata(target.targetDir);
     if (!metadata.exists) {
+      if (write) {
+        await copyManagedSkill(
+          skillDir,
+          target.targetDir,
+          options.appId,
+          skill.skillName,
+          hash,
+        );
+      }
       report.installed.push(result);
     } else if (!metadata.value) {
       report.conflicts.push({ ...result, reason: "unmanaged" });
@@ -365,6 +332,15 @@ export async function planBundledSkill(
     } else if (metadata.value.hash === hash) {
       report.skipped.push({ ...result, reason: "unchanged" });
     } else {
+      if (write) {
+        await replaceManagedSkill(
+          skillDir,
+          target.targetDir,
+          options.appId,
+          skill.skillName,
+          hash,
+        );
+      }
       report.updated.push(result);
     }
   }
@@ -448,23 +424,10 @@ async function replaceManagedSkill(
 }
 
 async function copySkillDir(src: string, dest: string) {
-  await mkdir(dest, { recursive: true });
-  for (const entry of await readdir(src, { withFileTypes: true })) {
-    if (skipName(entry.name)) continue;
-    const from = join(src, entry.name);
-    const to = join(dest, entry.name);
-    if (entry.isDirectory()) {
-      await copySkillDir(from, to);
-    } else if (entry.isFile()) {
-      await mkdir(dirname(to), { recursive: true });
-      await copyFile(from, to, constants.COPYFILE_FICLONE_FORCE).catch(
-        async () => {
-          await copyFile(from, to);
-        },
-      );
-      await chmod(to, (await stat(from)).mode);
-    }
-  }
+  await cp(src, dest, {
+    recursive: true,
+    filter: (source) => !skipName(basename(source)),
+  });
 }
 
 async function writeMetadata(
@@ -510,7 +473,7 @@ function canonicalScopePath(
   home: string,
   cwd: string,
 ) {
-  const paths = scope === "user" ? host.userSkillsDirs : host.projectSkillsDirs;
+  const paths = scopePaths(host, scope);
   return paths[0] ? expandHostPath(paths[0], home, cwd) : undefined;
 }
 
@@ -520,7 +483,7 @@ async function chooseScopePath(
   home: string,
   cwd: string,
 ) {
-  const paths = scope === "user" ? host.userSkillsDirs : host.projectSkillsDirs;
+  const paths = scopePaths(host, scope);
   for (const path of paths) {
     const expanded = expandHostPath(path, home, cwd);
     if (await exists(expanded)) return expanded;
@@ -528,12 +491,16 @@ async function chooseScopePath(
   return paths[0] ? expandHostPath(paths[0], home, cwd) : undefined;
 }
 
+function scopePaths(host: Host, scope: Scope) {
+  return scope === "user" ? host.userSkillsDirs : host.projectSkillsDirs;
+}
+
 function expandHostPath(path: string, home: string, cwd: string) {
   return path.startsWith("~/") ? join(home, path.slice(2)) : join(cwd, path);
 }
 
 function resolvePath(path: string, cwd: string) {
-  return resolve(isAbsolute(path) ? path : join(cwd, path));
+  return resolve(cwd, path);
 }
 
 function parseFrontmatter(content: string) {
