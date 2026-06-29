@@ -26,49 +26,85 @@ mycli skill install
 - not a remote registry
 - not a replacement for user-facing skill discovery tools
 
-## Repository layout
+## Usage
+
+Bundle a skill in your CLI project:
 
 ```text
-spec/hosts.json          host adapter database
-spec/hosts.schema.json   host spec schema
-testdata/                skill fixtures and golden cases
-docs/                    product and contract docs
-examples/                minimal SDK consumer CLIs
-Makefile                 root developer commands
-scripts/check.mjs        spec, fixture, and SDK parity validation
-scripts/sync-hosts.mjs   generated host constants
+mycli/
+  skills/mycli/SKILL.md
 ```
 
-TypeScript, Go, and Rust SDKs live in `ts/`, `go/`, and `rust/`.
+Your CLI owns the command name, flags, prompts, and bundled skill location. `kitup` owns host detection, target paths, copy/update semantics, metadata, and conflicts.
 
-## Check
+### TypeScript
+
+Install:
 
 ```bash
-make check
+npm install @kitup/sdk
 ```
 
-## Git Hooks
+Use:
+
+```ts
+import { installBundledSkill } from "@kitup/sdk";
+
+const report = await installBundledSkill({
+  appId: "mycli",
+  skillDir: "./skills/mycli",
+  scope: "user",
+});
+```
+
+### Go
+
+Install:
 
 ```bash
-make hooks
+go get github.com/samzong/kitup/go
 ```
 
-## Generate
+Use:
+
+```go
+import kitup "github.com/samzong/kitup/go"
+
+report, err := kitup.InstallBundledSkill(kitup.InstallOptions{
+	AppID:    "mycli",
+	SkillDir: "./skills/mycli",
+	Scope:    kitup.UserScope,
+})
+```
+
+### Rust
+
+Install:
 
 ```bash
-make generate
+cargo add kitup
 ```
 
-## Release
+Use:
 
-Push a `vX.Y.Z` tag to publish npm, crates.io, the `go/vX.Y.Z` module tag, and the GitHub Release.
+```rust
+let report = kitup::install_bundled_skill(&kitup::InstallOptions {
+    base: kitup::BaseOptions::default(),
+    app_id: "mycli".to_string(),
+    skill_dir: "./skills/mycli".into(),
+    scope: kitup::Scope::User,
+    agents: kitup::AgentSelector::Auto,
+})?;
+```
 
-See [docs/RELEASE.md](docs/RELEASE.md).
+The report contains `installed`, `updated`, `skipped`, `conflicts`, and `errors`.
 
-Required setup:
+## Docs
 
-- npm trusted publishing for `.github/workflows/release.yml`
-- `CARGO_REGISTRY_TOKEN` GitHub secret
+- [API](docs/API.md)
+- [Contributing](CONTRIBUTING.md)
+- [Host adapter contract](docs/host-adapter-contract.md)
+- [Release](docs/RELEASE.md)
 
 ## Acknowledgments
 

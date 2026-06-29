@@ -233,7 +233,7 @@ pub fn compute_content_hash(skill_dir: &Path) -> io::Result<String> {
         hash.update(bytes);
         hash.update([0]);
     }
-    Ok(format!("sha256:{}", hex_lower(&hash.finalize())))
+    Ok(format!("sha256:{:x}", hash.finalize()))
 }
 
 pub fn install_bundled_skill(options: &InstallOptions) -> io::Result<Value> {
@@ -479,18 +479,12 @@ fn push_report(report: &mut Value, key: &str, value: Value) {
 }
 
 fn canonical_scope_path(host: &Host, scope: Scope, home: &Path, cwd: &Path) -> Option<PathBuf> {
-    let paths = match scope {
-        Scope::User => &host.user_skills_dirs,
-        Scope::Project => &host.project_skills_dirs,
-    };
+    let paths = scope_paths(host, scope);
     paths.first().map(|path| expand_host_path(path, home, cwd))
 }
 
 fn choose_scope_path(host: &Host, scope: Scope, home: &Path, cwd: &Path) -> Option<PathBuf> {
-    let paths = match scope {
-        Scope::User => &host.user_skills_dirs,
-        Scope::Project => &host.project_skills_dirs,
-    };
+    let paths = scope_paths(host, scope);
     for path in paths {
         let expanded = expand_host_path(path, home, cwd);
         if expanded.exists() {
@@ -498,6 +492,13 @@ fn choose_scope_path(host: &Host, scope: Scope, home: &Path, cwd: &Path) -> Opti
         }
     }
     paths.first().map(|path| expand_host_path(path, home, cwd))
+}
+
+fn scope_paths(host: &Host, scope: Scope) -> &[String] {
+    match scope {
+        Scope::User => &host.user_skills_dirs,
+        Scope::Project => &host.project_skills_dirs,
+    }
 }
 
 fn expand_host_path(path: &str, home: &Path, cwd: &Path) -> PathBuf {
@@ -598,14 +599,4 @@ fn scope_text(scope: Scope) -> &'static str {
         Scope::User => "user",
         Scope::Project => "project",
     }
-}
-
-fn hex_lower(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut out = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        out.push(HEX[(byte >> 4) as usize] as char);
-        out.push(HEX[(byte & 0xf) as usize] as char);
-    }
-    out
 }
