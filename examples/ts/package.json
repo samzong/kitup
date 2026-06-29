@@ -1,0 +1,11 @@
+{
+  "name": "kitup-example-ts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install-skill": "pnpm --dir ../../ts build && node --experimental-strip-types cli.ts"
+  },
+  "dependencies": {
+    "@kitup/sdk": "link:../../ts"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@kitup/sdk",
+  "version": "0.1.0",
+  "description": "Shared installer SDK for bundled Agent Skills.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samzong/kitup.git",
+    "directory": "ts"
+  },
+  "bugs": {
+    "url": "https://github.com/samzong/kitup/issues"
+  },
+  "homepage": "https://github.com/samzong/kitup#readme",
+  "keywords": [
+    "agent",
+    "skills",
+    "installer",
+    "sdk"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepack": "pnpm build",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm build && tsc --noEmit && node --experimental-strip-types test/golden.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "prettier": "^3.9.1",
+    "typescript": "^5.9.0"
+  }
+}
