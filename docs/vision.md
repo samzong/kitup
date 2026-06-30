@@ -18,7 +18,7 @@ If 1,000 CLI projects each write their own skill installer, and 100 agent hosts 
 
 ## What kitup Is
 
-`kitup` is the shared installer SDK for bundled Agent Skills.
+`kitup` is the shared installer SDK for bundled and public GitHub Agent Skills.
 
 It lets a CLI author say:
 
@@ -34,7 +34,7 @@ The SDK handles the boring parts:
 - detecting installed agent hosts
 - resolving user and project skill directories
 - validating `SKILL.md`
-- copying bundled skill files
+- copying skill bundle files
 - writing ownership metadata
 - updating changed skills
 - skipping unchanged skills
@@ -45,11 +45,7 @@ That is all v0.1 needs to do.
 
 ## What kitup Is Not
 
-`kitup` is not a marketplace.
-
-It is not a remote registry.
-
-It is not a skill marketplace or remote registry.
+`kitup` is not a marketplace or remote registry.
 
 Marketplace tools serve users who want to discover and install arbitrary skills. `kitup` serves CLI authors who already ship a skill with their product.
 
@@ -62,7 +58,7 @@ Marketplace flow:
 kitup flow:
   CLI author owns skill X
   user runs mycli skill install
-  kitup installs that bundled skill into local agent hosts
+  kitup installs that configured skill bundle into local agent hosts
 ```
 
 Keeping that boundary small makes the SDK reliable enough for other projects to embed.
@@ -94,7 +90,7 @@ mycli -> kitup SDK -> local agent hosts -> installed SKILL.md
 A CLI author should not need to know where Codex, Claude Code, Cursor, OpenCode, Gemini CLI, or future hosts keep skills. They should only choose:
 
 - app id
-- bundled skill path
+- skill bundle
 - user or project scope
 - automatic or explicit agent selection
 
@@ -151,7 +147,7 @@ It is infrastructure, but infrastructure that removes real product friction.
 
 ## Long-Term Direction
 
-The first release should prove bundled skill installation.
+The first release should prove safe producer-side skill installation.
 
 After that, `kitup` can grow in three directions:
 
@@ -182,9 +178,9 @@ Help CLI authors build better bundled skills:
 
 ### 3. Optional package-manager layer
 
-Only after the producer-side SDK is stable, consider remote installs:
+Public GitHub directory bundles are a producer-owned bundle input, not a package-manager layer. Only after the producer-side SDK is stable, consider broader package-manager behavior:
 
-- install from GitHub repository
+- private source authentication
 - install from tarball
 - registry index
 - version pinning
@@ -220,4 +216,3 @@ Their agents should get the right skill.
 The CLI author should never maintain a list of 100 host-specific install paths.
 
 That is the whole product.
-
