@@ -2,7 +2,8 @@
 
 Shared installer SDK for bundled and public GitHub Agent Skills.
 
-CLI authors ship or point to a skill. `kitup` models that skill as a directory tree, resolves safe agent targets, validates `SKILL.md`, copies the full tree into the right host directories, and writes ownership metadata so updates stay safe.
+CLI authors ship or point to a skill. `kitup` models that skill as a directory tree, resolves safe agent targets, validates `SKILL.md`,
+copies the full tree into the right host directories, and writes ownership metadata so updates stay safe.
 
 ```text
 mycli skill install
@@ -38,7 +39,9 @@ mycli/
   skills/mycli/SKILL.md
 ```
 
-Your CLI owns the command name and framework shell. `kitup` owns the standard install flags, agent selector mapping, host detection, safe selection policy, summary text, confirmation, workflow exit classification, target paths, bundle validation, copy/update semantics, metadata, and conflicts.
+Your CLI owns the command name and framework shell. `kitup` owns the standard install flags, agent selector mapping,
+host detection, safe selection policy, summary text, confirmation, workflow exit classification, target paths,
+bundle validation, copy/update semantics, metadata, and conflicts.
 
 ### TypeScript
 
@@ -48,75 +51,37 @@ Install:
 npm install @kitup/sdk
 ```
 
-Use the workflow API for user-facing install commands:
+Embed the install workflow:
 
 ```ts
-import {
-  directoryBundle,
-  installFlagError,
-  installWorkflowError,
-  parseInstallFlags,
-  runBundledSkillInstall,
-} from "@kitup/sdk";
+import { directoryBundle, runBundledSkillInstall } from "@kitup/sdk";
 
-const flags = parseInstallFlags({
-  scope: "user",
-  agents: ["codex"],
-  yes: false,
-  dryRun: false,
-});
-const flagError = installFlagError(flags.errors);
-if (flagError) throw flagError;
-
-const result = await runBundledSkillInstall({
+await runBundledSkillInstall({
   appId: "mycli",
   skillBundle: directoryBundle("./skills/mycli"),
-  scope: flags.scope,
-  scopeSet: flags.scopeSet,
-  promptScope: true,
-  agents: flags.agents,
-  yes: flags.yes,
-  dryRun: flags.dryRun,
+  scope: "user",
 });
-const workflowError = installWorkflowError(result);
-if (workflowError) throw workflowError;
 ```
 
-For embedded bundles, pass the whole skill tree:
+For full CLI flags, wire `parseInstallFlags` into `runBundledSkillInstall` with `scopeSet` and `promptScope`, then map exits with `installFlagError` and `installWorkflowError`; see [API](docs/API.md).
+
+For embedded bundles or public GitHub directories, pass a different `skillBundle` value to the same install call:
 
 ```ts
-import { filesBundle, runBundledSkillInstall } from "@kitup/sdk";
+import { filesBundle, githubBundle } from "@kitup/sdk";
 
-await runBundledSkillInstall({
-  appId: "mycli",
-  skillBundle: filesBundle([
-    { path: "SKILL.md", contents: skillMd },
-    { path: "references/guide.md", contents: guide },
-  ]),
-  scope: "user",
-  agents: ["codex"],
+const embeddedSkillBundle = filesBundle([
+  { path: "SKILL.md", contents: skillMd },
+  { path: "references/guide.md", contents: guide },
+]);
+
+const githubSkillBundle = githubBundle({
+  owner: "acme",
+  repo: "mycli-skills",
+  path: "skills/mycli",
+  ref: "v1.2.3",
 });
 ```
-
-For public GitHub directories, configure the GitHub bundle in the embedding CLI. The user-facing install command stays the same:
-
-```ts
-import { githubBundle, runBundledSkillInstall } from "@kitup/sdk";
-
-await runBundledSkillInstall({
-  appId: "mycli",
-  skillBundle: githubBundle({
-    owner: "acme",
-    repo: "mycli-skills",
-    path: "skills/mycli",
-    ref: "v1.2.3",
-  }),
-  scope: "user",
-  agents: ["codex"],
-});
-```
-
-Go, Rust, and Cobra use the same `skillBundle` shape; see [API](docs/API.md) for language-specific constructors.
 
 ### Go
 
@@ -161,7 +126,7 @@ result, err := kitup.RunBundledSkillInstall(kitup.InstallWorkflowOptions{
 })
 ```
 
-For Cobra CLIs, use the optional adapter. The adapter does not own installer behavior; it only wires Cobra flags to the core workflow.
+For Cobra CLIs, the adapter does not own installer behavior; it only wires Cobra flags to the core workflow.
 
 ```go
 import (
@@ -203,11 +168,8 @@ let result = kitup::run_bundled_skill_install(&kitup::InstallWorkflowOptions {
 })?;
 ```
 
-The workflow result contains the selected agents, dry-run plan, final install report, and cancellation state. The final install report contains `installed`, `updated`, `skipped`, `conflicts`, and `errors`.
-
-For lower-level integrations, `InstallBundledSkill` / `installBundledSkill` / `install_bundled_skill` remain primitive copy APIs. Do not wire a user-facing CLI directly to `agents: "auto"` unless you intentionally want primitive auto-detect behavior. Use the shared flag parsing, selector mapping, UX strings, and workflow exit helpers for CLI commands.
-
-For user-facing install commands, missing `--scope` is interactive state, not `user`. Pass `scopeSet` and enable `promptScope` so TTY workflows ask for scope before agent selection. `--yes` uses the configured default scope.
+The workflow result contains the selected agents, dry-run plan, final install report, and cancellation state.
+The final install report contains `installed`, `updated`, `skipped`, `conflicts`, and `errors`.
 
 ## Docs
 
