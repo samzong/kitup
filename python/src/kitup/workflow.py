@@ -182,14 +182,14 @@ def install_workflow_error(
 
 
 def run_bundled_skill_install(options: InstallWorkflowOptions) -> InstallWorkflowReport:
+    input_source = options.input if options.input is not None else sys.stdin
+    output_target = options.output if options.output is not None else sys.stdout
     stdin_tty = (
         options.stdin_tty
         if options.stdin_tty is not None
-        else bool(getattr(sys.stdin, "isatty", lambda: False)())
+        else bool(getattr(input_source, "isatty", lambda: False)())
     )
     runtime_options = replace(options, stdin_tty=stdin_tty)
-    input_source = options.input if options.input is not None else sys.stdin
-    output_target = options.output if options.output is not None else sys.stdout
     return run_bundled_skill_install_with_io(
         runtime_options, input_source, output_target
     )

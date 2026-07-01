@@ -310,6 +310,11 @@ class _TTYInput(io.StringIO):
         return True
 
 
+class _NonTTYInput(io.StringIO):
+    def isatty(self) -> bool:
+        return False
+
+
 def test_run_bundled_skill_install_uses_stdio_defaults_for_interactive_flow(
     monkeypatch, tmp_path
 ):
@@ -340,6 +345,46 @@ def test_run_bundled_skill_install_uses_stdio_defaults_for_interactive_flow(
             ),
             prompt_scope=True,
             scope_set=False,
+        )
+    )
+
+    assert report.scope == "project"
+    assert report.canceled is False
+    assert "Select install scope:" in stdout.getvalue()
+    assert "Proceed? [y/N] " in stdout.getvalue()
+    assert (workspace / ".agents" / "skills" / "basic" / "SKILL.md").exists()
+
+
+def test_run_bundled_skill_install_infers_tty_from_custom_input_stream(
+    monkeypatch, tmp_path
+):
+    home = tmp_path / "home"
+    workspace = tmp_path / "workspace"
+    home.mkdir()
+    workspace.mkdir()
+    skill = workspace / "skill"
+    skill.mkdir()
+    (skill / "SKILL.md").write_text(
+        "---\nname: basic\ndescription: demo\n---\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("sys.stdin", _NonTTYInput(""))
+    stdout = io.StringIO()
+
+    report = run_bundled_skill_install(
+        InstallWorkflowOptions(
+            install=InstallOptions(
+                base=BaseOptions(home=str(home), cwd=str(workspace)),
+                app_id="example-cli",
+                skill_bundle=directory_bundle(str(skill)),
+                scope="user",
+                agents=["codex"],
+            ),
+            prompt_scope=True,
+            scope_set=False,
+            input=_TTYInput("project\ny\n"),
+            output=stdout,
         )
     )
 
