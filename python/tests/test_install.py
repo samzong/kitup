@@ -4,12 +4,28 @@ import kitup
 from kitup import (
     directory_bundle,
     install_bundled_skill,
+    plan_bundled_skill,
     resolve_install_targets,
     uninstall_bundled_skill,
     update_bundled_skill,
 )
 from kitup.bundle import compute_bundle_content_hash
-from kitup.types import BaseOptions, InstallOptions, UninstallOptions
+from kitup.types import (
+    BaseOptions,
+    InstallOptions,
+    InstallReport,
+    InstallSelection,
+    InstallSelectionOptions,
+    InstallWorkflowExit,
+    InstallWorkflowOptions,
+    InstallWorkflowReport,
+    ParsedInstallFlags,
+    TargetError,
+    TargetResult,
+    TargetStatus,
+    UninstallOptions,
+    UninstallReport,
+)
 
 
 def test_resolve_install_targets_prefers_first_existing_user_dir(tmp_path):
@@ -268,6 +284,29 @@ def test_install_lifecycle_reports_owner_mismatch_and_missing(tmp_path):
 
 def test_install_lifecycle_is_re_exported_from_top_level_package():
     assert kitup.directory_bundle is directory_bundle
+    assert kitup.plan_bundled_skill is plan_bundled_skill
     assert kitup.install_bundled_skill is install_bundled_skill
     assert kitup.update_bundled_skill is update_bundled_skill
     assert kitup.uninstall_bundled_skill is uninstall_bundled_skill
+    assert kitup.InstallOptions is InstallOptions
+    assert kitup.UninstallOptions is UninstallOptions
+    assert kitup.InstallReport is InstallReport
+    assert kitup.UninstallReport is UninstallReport
+    assert kitup.TargetResult is TargetResult
+    assert kitup.TargetStatus is TargetStatus
+    assert kitup.TargetError is TargetError
+    assert kitup.InstallSelection is InstallSelection
+    assert kitup.InstallSelectionOptions is InstallSelectionOptions
+    assert kitup.InstallWorkflowOptions is InstallWorkflowOptions
+    assert kitup.InstallWorkflowExit is InstallWorkflowExit
+    assert kitup.InstallWorkflowReport is InstallWorkflowReport
+    assert kitup.ParsedInstallFlags is ParsedInstallFlags
+
+    for name in [
+        "BundleFile",
+        "GitHubBundleOptions",
+        "NormalizedSkillBundle",
+        "SkillFile",
+        "SkillInfo",
+    ]:
+        assert not hasattr(kitup, name)
