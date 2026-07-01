@@ -117,6 +117,9 @@ class TargetStatus(TargetResult):
 class TargetError:
     reason: str
     agent: str | None = None
+    host_id: str | None = None
+    skill_name: str | None = None
+    scope: Scope | None = None
 
 
 @dataclass(frozen=True)
@@ -138,12 +141,12 @@ class UninstallReport:
 
 @dataclass
 class InstallSelection:
-    action: str
+    action: Literal["install", "select-agents", "error"]
     selected_host_ids: list[str]
     candidate_host_ids: list[str]
     detected_host_ids: list[str]
     needs_confirmation: bool
-    errors: list[TargetError]
+    errors: list[dict[str, str]]
 
 
 @dataclass(frozen=True)
@@ -180,7 +183,7 @@ class InstallWorkflowExit:
 @dataclass
 class InstallWorkflowReport:
     selection: InstallSelection
-    scope: str
+    scope: Scope | Literal[""]
     plan: InstallReport
     report: InstallReport
     canceled: bool
@@ -194,12 +197,23 @@ class ParsedInstallFlags:
     agents: str | list[str]
     yes: bool
     dry_run: bool
-    errors: list[TargetError]
+    errors: list[dict[str, str]]
 
 
 INSTALL_UX = {
     "skill_use": "skill",
     "install_use": "install",
+    "select_scope": "Select install scope:",
     "scope_prompt": "Scope (user/project)",
+    "invalid_scope_selection": "Invalid scope selection.",
+    "select_agents": "Select agents:",
     "agents_prompt": "Agents (numbers, ids, comma-separated, empty cancels)",
+    "invalid_agent_selection": "Invalid agent selection.",
+    "proceed": "Proceed? [y/N] ",
+    "error_prefix": "kitup:",
+    "canceled": "Installation canceled.",
+    "selection_error": "Agent selection failed.",
+    "conflict": "Installation has conflicts.",
+    "failed": "Installation failed.",
+    "invalid_flags": "Invalid install flags.",
 }

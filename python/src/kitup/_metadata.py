@@ -11,6 +11,9 @@ def write_install_metadata(
     skill_name: str,
     digest: str,
     source: str,
+    source_id: str | None = None,
+    version: str | None = None,
+    provenance: dict[str, object] | None = None,
 ) -> None:
     payload = {
         "schemaVersion": 1,
@@ -19,6 +22,12 @@ def write_install_metadata(
         "source": source,
         "hash": digest,
     }
+    if source_id is not None:
+        payload["sourceId"] = source_id
+    if version is not None:
+        payload["version"] = version
+    if provenance is not None:
+        payload["provenance"] = provenance
     (target_dir / ".kitup.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 

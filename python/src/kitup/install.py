@@ -4,11 +4,16 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from ._github import fetch_github_directory_with_metadata
 from ._metadata import read_install_metadata, write_install_metadata
 from .bundle import (
+    DirectoryBundle,
+    FilesBundle,
+    GitHubBundle,
     copy_normalized_bundle,
     compute_bundle_content_hash,
-    normalize_skill_bundle,
+    normalize_directory_bundle,
+    normalize_files_bundle,
     validate_skill_bundle,
 )
 from .hosts import detect_hosts, load_host_spec, resolve_hosts
@@ -51,29 +56,8 @@ def resolve_install_targets(
     scope: Scope,
     skill_name: str,
 ) -> list[TargetGroup]:
-    spec = load_host_spec(options.hosts_file)
-    home = Path(options.home).expanduser() if options.home else Path.home()
-    cwd = Path(options.cwd) if options.cwd else Path.cwd()
-    if agents in (None, "auto"):
-        selected = detect_hosts(options, scope)
-    else:
-        selected, errors = resolve_hosts(agents, spec.hosts)
-        if errors:
-            return []
-
-    by_target: dict[str, TargetGroup] = {}
-    for host in selected:
-        root = choose_scope_path(host, scope=scope, home=home, cwd=cwd)
-        if root is None:
-            continue
-        target_dir = str(root / skill_name)
-        group = by_target.get(target_dir)
-        if group is None:
-            group = TargetGroup(skill_name=skill_name, target_dir=target_dir)
-            by_target[target_dir] = group
-        group.host_ids.append(host.id)
-
-    return [by_target[path] for path in sorted(by_target)]
+    targets, _ = _resolve_install_targets_with_errors(options, agents, scope, skill_name)
+    return targets
 
 
 def empty_install_report(errors: list[TargetError] | None = None) -> InstallReport:
@@ -128,7 +112,7 @@ def write_managed_bundle(
     app_id: str,
     skill_name: str,
     digest: str,
-    source: str,
+    metadata: dict[str, object],
     replace: bool,
 ) -> None:
     if not replace:
@@ -138,7 +122,10 @@ def write_managed_bundle(
             app_id=app_id,
             skill_name=skill_name,
             digest=digest,
-            source=source,
+            source=str(metadata["source"]),
+            source_id=_metadata_text(metadata, "source_id"),
+            version=_metadata_text(metadata, "version"),
+            provenance=_metadata_provenance(metadata),
         )
         return
 
@@ -157,7 +144,10 @@ def write_managed_bundle(
             app_id=app_id,
             skill_name=skill_name,
             digest=digest,
-            source=source,
+            source=str(metadata["source"]),
+            source_id=_metadata_text(metadata, "source_id"),
+            version=_metadata_text(metadata, "version"),
+            provenance=_metadata_provenance(metadata),
         )
         backup_dir = Path(
             tempfile.mkdtemp(
@@ -177,19 +167,31 @@ def write_managed_bundle(
 
 
 def install_or_plan(options: InstallOptions, *, write: bool) -> InstallReport:
+    try:
+        normalized, bundle_metadata = _resolve_bundle_and_metadata(
+            options.skill_bundle, cwd=options.base.cwd
+        )
+    except Exception:
+        reason = (
+            "bundle-resolve-failed"
+            if isinstance(options.skill_bundle, GitHubBundle)
+            else "invalid-skill-bundle"
+        )
+        return empty_install_report([TargetError(reason=reason)])
+
     info = validate_skill_bundle(options.skill_bundle, cwd=options.base.cwd)
     if not info.valid or not info.skill_name:
         return empty_install_report([TargetError(reason=info.error_code or "invalid-skill-bundle")])
 
-    normalized = normalize_skill_bundle(options.skill_bundle, cwd=options.base.cwd)
     digest = compute_bundle_content_hash(options.skill_bundle, cwd=options.base.cwd)
-    report = empty_install_report()
-    for target in resolve_install_targets(
+    targets, errors = _resolve_install_targets_with_errors(
         options.base,
         options.agents,
         options.scope,
         info.skill_name,
-    ):
+    )
+    report = empty_install_report(errors)
+    for target in targets:
         result = target_result(target)
         target_dir = Path(target.target_dir)
         metadata_file = target_dir / ".kitup.json"
@@ -202,7 +204,7 @@ def install_or_plan(options: InstallOptions, *, write: bool) -> InstallReport:
                     app_id=options.app_id,
                     skill_name=info.skill_name,
                     digest=digest,
-                    source="bundled",
+                    metadata=bundle_metadata,
                     files=normalized.files,
                     replace=False,
                 )
@@ -223,28 +225,29 @@ def install_or_plan(options: InstallOptions, *, write: bool) -> InstallReport:
             continue
 
         if write:
-            write_managed_bundle(
-                target_dir,
-                app_id=options.app_id,
-                skill_name=info.skill_name,
-                digest=digest,
-                source=str(metadata.get("source", "bundled")),
-                files=normalized.files,
-                replace=True,
-            )
+                write_managed_bundle(
+                    target_dir,
+                    app_id=options.app_id,
+                    skill_name=info.skill_name,
+                    digest=digest,
+                    metadata=bundle_metadata,
+                    files=normalized.files,
+                    replace=True,
+                )
         report.updated.append(result)
 
     return report
 
 
 def uninstall_bundled_skill(options: UninstallOptions) -> UninstallReport:
-    report = empty_uninstall_report()
-    for target in resolve_install_targets(
+    targets, errors = _resolve_install_targets_with_errors(
         options.base,
         options.agents,
         options.scope,
         options.skill_name,
-    ):
+    )
+    report = empty_uninstall_report(errors)
+    for target in targets:
         result = target_result(target)
         target_dir = Path(target.target_dir)
         metadata_file = target_dir / ".kitup.json"
@@ -267,3 +270,63 @@ def uninstall_bundled_skill(options: UninstallOptions) -> UninstallReport:
         report.removed.append(result)
 
     return report
+
+
+def _resolve_bundle_and_metadata(skill_bundle: object, *, cwd: str | None) -> tuple[object, dict[str, object]]:
+    if isinstance(skill_bundle, DirectoryBundle):
+        return normalize_directory_bundle(skill_bundle.path, cwd=cwd), {"source": "bundled"}
+    if isinstance(skill_bundle, FilesBundle):
+        return normalize_files_bundle(skill_bundle.files), {"source": "bundled"}
+    if isinstance(skill_bundle, GitHubBundle):
+        files, metadata = fetch_github_directory_with_metadata(skill_bundle.options)
+        return normalize_files_bundle(files), metadata
+    raise TypeError(f"unsupported bundle: {type(skill_bundle)!r}")
+
+
+def _resolve_install_targets_with_errors(
+    options: BaseOptions,
+    agents: str | list[str] | None,
+    scope: Scope,
+    skill_name: str,
+) -> tuple[list[TargetGroup], list[TargetError]]:
+    spec = load_host_spec(options.hosts_file)
+    home = Path(options.home).expanduser() if options.home else Path.home()
+    cwd = Path(options.cwd) if options.cwd else Path.cwd()
+    if agents in (None, "auto"):
+        selected = detect_hosts(options, scope)
+        errors: list[TargetError] = []
+    else:
+        selected, resolution_errors = resolve_hosts(agents, spec.hosts)
+        errors = [TargetError(reason=error["reason"], agent=error["agent"]) for error in resolution_errors]
+
+    by_target: dict[str, TargetGroup] = {}
+    for host in selected:
+        root = choose_scope_path(host, scope=scope, home=home, cwd=cwd)
+        if root is None:
+            errors.append(
+                TargetError(
+                    reason="unsupported-scope",
+                    host_id=host.id,
+                    skill_name=skill_name,
+                    scope=scope,
+                )
+            )
+            continue
+        target_dir = str(root / skill_name)
+        group = by_target.get(target_dir)
+        if group is None:
+            group = TargetGroup(skill_name=skill_name, target_dir=target_dir)
+            by_target[target_dir] = group
+        group.host_ids.append(host.id)
+
+    return [by_target[path] for path in sorted(by_target)], errors
+
+
+def _metadata_text(metadata: dict[str, object], key: str) -> str | None:
+    value = metadata.get(key)
+    return value if isinstance(value, str) else None
+
+
+def _metadata_provenance(metadata: dict[str, object]) -> dict[str, object] | None:
+    value = metadata.get("provenance")
+    return value if isinstance(value, dict) else None

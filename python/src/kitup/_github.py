@@ -10,6 +10,13 @@ from .types import GitHubBundleOptions, KitupError, SkillFile
 
 
 def fetch_github_directory(options: GitHubBundleOptions) -> list[SkillFile]:
+    files, _ = fetch_github_directory_with_metadata(options)
+    return files
+
+
+def fetch_github_directory_with_metadata(
+    options: GitHubBundleOptions,
+) -> tuple[list[SkillFile], dict[str, object]]:
     root = trim_github_path(options.path)
     if not options.owner or not options.repo or not root or not options.ref:
         raise KitupError("invalid github bundle")
@@ -59,7 +66,18 @@ def fetch_github_directory(options: GitHubBundleOptions) -> list[SkillFile]:
     if not files:
         raise KitupError("github bundle path not found")
 
-    return files
+    return files, {
+        "source": "github",
+        "source_id": f"github:{options.owner}/{options.repo}/{root}",
+        "version": options.ref,
+        "provenance": {
+            "owner": options.owner,
+            "repo": options.repo,
+            "path": root,
+            "ref": options.ref,
+            "resolvedCommit": resolved_commit,
+        },
+    }
 
 
 def github_json(url: str) -> dict[str, object]:
