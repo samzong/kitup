@@ -141,6 +141,16 @@ def normalize_files_bundle(files: list[SkillFile]) -> NormalizedSkillBundle:
     return NormalizedSkillBundle(files=normalized_files, by_path=by_path)
 
 
+def copy_normalized_bundle(files: list[BundleFile], target_dir: str | Path) -> None:
+    destination_root = Path(target_dir)
+    destination_root.mkdir(parents=True, exist_ok=True)
+    for file in files:
+        destination = destination_root / file.path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(file.bytes)
+        destination.chmod(file.mode)
+
+
 def _parse_frontmatter(content: str) -> dict[str, str]:
     fields: dict[str, str] = {}
     for line in content.splitlines():

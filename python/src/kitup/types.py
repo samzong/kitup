@@ -82,27 +82,119 @@ class NormalizedSkillBundle:
     label: str | None = None
 
 
-TargetResult = dict[str, object]
-TargetSkip = dict[str, object]
-TargetConflict = dict[str, object]
-TargetError = dict[str, str]
+@dataclass(frozen=True)
+class InstallOptions:
+    base: BaseOptions
+    app_id: str
+    skill_bundle: object
+    scope: Scope
+    agents: str | list[str] = "auto"
+
+
+@dataclass(frozen=True)
+class UninstallOptions:
+    base: BaseOptions
+    app_id: str
+    skill_name: str
+    scope: Scope
+    agents: str | list[str] = "auto"
+
+
+@dataclass(frozen=True)
+class TargetResult:
+    skill_name: str
+    target_dir: str
+    host_id: str | None = None
+    host_ids: list[str] | None = None
+
+
+@dataclass(frozen=True)
+class TargetStatus(TargetResult):
+    reason: str = ""
+
+
+@dataclass(frozen=True)
+class TargetError:
+    reason: str
+    agent: str | None = None
 
 
 @dataclass(frozen=True)
 class InstallReport:
     installed: list[TargetResult] = field(default_factory=list)
     updated: list[TargetResult] = field(default_factory=list)
-    skipped: list[TargetSkip] = field(default_factory=list)
-    conflicts: list[TargetConflict] = field(default_factory=list)
+    skipped: list[TargetStatus] = field(default_factory=list)
+    conflicts: list[TargetStatus] = field(default_factory=list)
     errors: list[TargetError] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
 class UninstallReport:
     removed: list[TargetResult] = field(default_factory=list)
-    skipped: list[TargetSkip] = field(default_factory=list)
-    conflicts: list[TargetConflict] = field(default_factory=list)
+    skipped: list[TargetStatus] = field(default_factory=list)
+    conflicts: list[TargetStatus] = field(default_factory=list)
     errors: list[TargetError] = field(default_factory=list)
+
+
+@dataclass
+class InstallSelection:
+    action: str
+    selected_host_ids: list[str]
+    candidate_host_ids: list[str]
+    detected_host_ids: list[str]
+    needs_confirmation: bool
+    errors: list[TargetError]
+
+
+@dataclass(frozen=True)
+class InstallSelectionOptions:
+    base: BaseOptions
+    scope: Scope
+    agents: str | list[str] = "auto"
+    yes: bool = False
+    stdin_tty: bool = False
+    current_agent: str | None = None
+
+
+@dataclass(frozen=True)
+class InstallWorkflowOptions:
+    install: InstallOptions
+    yes: bool = False
+    dry_run: bool = False
+    stdin_tty: bool = False
+    current_agent: str | None = None
+    default_scope: Scope = "user"
+    scope_set: bool = False
+    prompt_scope: bool = False
+    input: object | None = None
+    output: object | None = None
+
+
+@dataclass(frozen=True)
+class InstallWorkflowExit:
+    ok: bool
+    code: str
+    message: str
+
+
+@dataclass
+class InstallWorkflowReport:
+    selection: InstallSelection
+    scope: str
+    plan: InstallReport
+    report: InstallReport
+    canceled: bool
+    dry_run: bool
+
+
+@dataclass(frozen=True)
+class ParsedInstallFlags:
+    scope: Scope
+    scope_set: bool
+    agents: str | list[str]
+    yes: bool
+    dry_run: bool
+    errors: list[TargetError]
 
 
 INSTALL_UX = {
