@@ -83,3 +83,21 @@ def test_detect_hosts_skips_generic_detect_paths_and_sorts_by_scope_path(tmp_pat
     )
 
     assert [host.id for host in hosts] == ["codex", "claude-code"]
+
+
+def test_detect_hosts_uses_first_existing_specific_path_for_kimi_cli(tmp_path):
+    home = tmp_path / "home"
+    workspace = tmp_path / "workspace"
+    home.mkdir()
+    workspace.mkdir()
+    (home / ".kimi").mkdir()
+
+    hosts = detect_hosts(
+        BaseOptions(
+            home=str(home),
+            cwd=str(workspace),
+        ),
+        scope="user",
+    )
+
+    assert "kimi-cli" in [host.id for host in hosts]

@@ -26,30 +26,21 @@ def resolve_install_targets(
     agents: str | list[str] | None,
     scope: Scope,
     skill_name: str,
-) -> tuple[list[TargetGroup], list[dict[str, str]], list[str]]:
+) -> list[TargetGroup]:
     spec = load_host_spec(options.hosts_file)
     home = Path(options.home).expanduser() if options.home else Path.home()
     cwd = Path(options.cwd) if options.cwd else Path.cwd()
-    selected: list[Host]
-    errors: list[dict[str, str]]
     if agents in (None, "auto"):
         selected = detect_hosts(options, scope)
-        errors = []
     else:
         selected, errors = resolve_hosts(agents, spec.hosts)
+        if errors:
+            return []
 
     by_target: dict[str, TargetGroup] = {}
     for host in selected:
         root = choose_scope_path(host, scope=scope, home=home, cwd=cwd)
         if root is None:
-            errors.append(
-                {
-                    "hostId": host.id,
-                    "skillName": skill_name,
-                    "scope": scope,
-                    "reason": "unsupported-scope",
-                }
-            )
             continue
         target_dir = str(root / skill_name)
         group = by_target.get(target_dir)
@@ -58,6 +49,4 @@ def resolve_install_targets(
             by_target[target_dir] = group
         group.host_ids.append(host.id)
 
-    targets = [by_target[path] for path in sorted(by_target)]
-    detected_host_ids = [host_id for target in targets for host_id in target.host_ids]
-    return targets, errors, detected_host_ids
+    return [by_target[path] for path in sorted(by_target)]

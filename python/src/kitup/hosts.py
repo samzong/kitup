@@ -65,12 +65,7 @@ def detect_hosts(options: BaseOptions, scope: Scope | None = None) -> list[Host]
     cwd = Path(options.cwd) if options.cwd else Path.cwd()
     detected: list[Host] = []
     for host in spec.hosts:
-        if not host.detect:
-            continue
-        first_detect = host.detect[0]
-        if first_detect in _GENERIC_DETECT_PATHS:
-            continue
-        if _expand_host_path(first_detect, home=home, cwd=cwd).exists():
+        if _first_specific_detect_path(host, home=home, cwd=cwd) is not None:
             detected.append(host)
 
     if scope is not None:
@@ -90,6 +85,16 @@ def _canonical_scope_path(
     if not paths:
         return None
     return _expand_host_path(paths[0], home=home, cwd=cwd)
+
+
+def _first_specific_detect_path(host: Host, *, home: Path, cwd: Path) -> Path | None:
+    for path in host.detect:
+        if path in _GENERIC_DETECT_PATHS:
+            continue
+        expanded = _expand_host_path(path, home=home, cwd=cwd)
+        if expanded.exists():
+            return expanded
+    return None
 
 
 def _expand_host_path(path: str, *, home: Path, cwd: Path) -> Path:
