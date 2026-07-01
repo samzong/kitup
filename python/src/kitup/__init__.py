@@ -26,6 +26,7 @@ from .workflow import (
 )
 from .types import (
     BaseOptions,
+    GitHubBundleOptions,
     Host,
     HostSpec,
     INSTALL_UX,
@@ -38,6 +39,7 @@ from .types import (
     InstallWorkflowReport,
     KitupError,
     ParsedInstallFlags,
+    SkillFile,
     TargetError,
     TargetGroup,
     TargetResult,
@@ -48,6 +50,7 @@ from .types import (
 
 __all__ = [
     "BaseOptions",
+    "GitHubBundleOptions",
     "Host",
     "HostSpec",
     "INSTALL_UX",
@@ -60,6 +63,7 @@ __all__ = [
     "InstallWorkflowReport",
     "KitupError",
     "ParsedInstallFlags",
+    "SkillFile",
     "TargetError",
     "TargetGroup",
     "TargetResult",

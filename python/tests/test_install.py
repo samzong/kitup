@@ -2,6 +2,8 @@ import json
 
 import kitup
 from kitup import (
+    GitHubBundleOptions,
+    SkillFile,
     directory_bundle,
     install_bundled_skill,
     plan_bundled_skill,
@@ -304,12 +306,12 @@ def test_install_lifecycle_is_re_exported_from_top_level_package():
     assert kitup.InstallWorkflowExit is InstallWorkflowExit
     assert kitup.InstallWorkflowReport is InstallWorkflowReport
     assert kitup.ParsedInstallFlags is ParsedInstallFlags
+    assert kitup.GitHubBundleOptions is GitHubBundleOptions
+    assert kitup.SkillFile is SkillFile
 
     for name in [
         "BundleFile",
-        "GitHubBundleOptions",
         "NormalizedSkillBundle",
-        "SkillFile",
         "SkillInfo",
     ]:
         assert not hasattr(kitup, name)

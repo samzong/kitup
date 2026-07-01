@@ -167,7 +167,7 @@ class InstallWorkflowOptions:
     install: InstallOptions
     yes: bool = False
     dry_run: bool = False
-    stdin_tty: bool = False
+    stdin_tty: bool | None = None
     current_agent: str | None = None
     default_scope: Scope = "user"
     scope_set: bool = False

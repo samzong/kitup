@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 import io
+import sys
 from typing import Iterable
 
 from .hosts import detect_hosts, load_host_spec, resolve_hosts
@@ -181,7 +182,17 @@ def install_workflow_error(
 
 
 def run_bundled_skill_install(options: InstallWorkflowOptions) -> InstallWorkflowReport:
-    return run_bundled_skill_install_with_io(options, options.input, options.output)
+    stdin_tty = (
+        options.stdin_tty
+        if options.stdin_tty is not None
+        else bool(getattr(sys.stdin, "isatty", lambda: False)())
+    )
+    runtime_options = replace(options, stdin_tty=stdin_tty)
+    input_source = options.input if options.input is not None else sys.stdin
+    output_target = options.output if options.output is not None else sys.stdout
+    return run_bundled_skill_install_with_io(
+        runtime_options, input_source, output_target
+    )
 
 
 def run_bundled_skill_install_with_io(

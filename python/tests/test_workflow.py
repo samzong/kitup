@@ -4,9 +4,11 @@ import json
 import kitup
 from kitup import (
     BaseOptions,
+    GitHubBundleOptions,
     InstallOptions,
     InstallSelectionOptions,
     InstallWorkflowOptions,
+    SkillFile,
     agent_selector_from_flags,
     classify_install_workflow_exit,
     directory_bundle,
@@ -17,9 +19,9 @@ from kitup import (
     plan_bundled_skill,
     parse_scope_flag,
     resolve_install_selection,
+    run_bundled_skill_install,
     run_bundled_skill_install_with_io,
 )
-from kitup.types import GitHubBundleOptions, SkillFile
 from kitup.workflow import split_flag_values
 
 
@@ -297,7 +299,55 @@ def test_run_bundled_skill_install_scope_prompt_and_top_level_exports(tmp_path):
     assert kitup.classify_install_workflow_exit is classify_install_workflow_exit
     assert kitup.install_flag_error is install_flag_error
     assert kitup.install_workflow_error is install_workflow_error
+    assert kitup.run_bundled_skill_install is run_bundled_skill_install
     assert kitup.run_bundled_skill_install_with_io is run_bundled_skill_install_with_io
+    assert kitup.GitHubBundleOptions is GitHubBundleOptions
+    assert kitup.SkillFile is SkillFile
+
+
+class _TTYInput(io.StringIO):
+    def isatty(self) -> bool:
+        return True
+
+
+def test_run_bundled_skill_install_uses_stdio_defaults_for_interactive_flow(
+    monkeypatch, tmp_path
+):
+    home = tmp_path / "home"
+    workspace = tmp_path / "workspace"
+    home.mkdir()
+    workspace.mkdir()
+    skill = workspace / "skill"
+    skill.mkdir()
+    (skill / "SKILL.md").write_text(
+        "---\nname: basic\ndescription: demo\n---\n",
+        encoding="utf-8",
+    )
+
+    stdin = _TTYInput("project\ny\n")
+    stdout = io.StringIO()
+    monkeypatch.setattr("sys.stdin", stdin)
+    monkeypatch.setattr("sys.stdout", stdout)
+
+    report = run_bundled_skill_install(
+        InstallWorkflowOptions(
+            install=InstallOptions(
+                base=BaseOptions(home=str(home), cwd=str(workspace)),
+                app_id="example-cli",
+                skill_bundle=directory_bundle(str(skill)),
+                scope="user",
+                agents=["codex"],
+            ),
+            prompt_scope=True,
+            scope_set=False,
+        )
+    )
+
+    assert report.scope == "project"
+    assert report.canceled is False
+    assert "Select install scope:" in stdout.getvalue()
+    assert "Proceed? [y/N] " in stdout.getvalue()
+    assert (workspace / ".agents" / "skills" / "basic" / "SKILL.md").exists()
 
 
 def test_plan_bundled_skill_uses_single_github_snapshot(monkeypatch, tmp_path):
