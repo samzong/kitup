@@ -88,7 +88,7 @@ const githubSkillBundle = githubBundle({
 Install:
 
 ```bash
-go get github.com/samzong/kitup/go
+go get github.com/lathe-cli/kitup/go
 ```
 
 Use the workflow API for user-facing install commands:
@@ -97,7 +97,7 @@ Use the workflow API for user-facing install commands:
 import (
 	"os"
 
-	kitup "github.com/samzong/kitup/go"
+	kitup "github.com/lathe-cli/kitup/go"
 )
 
 result, err := kitup.RunBundledSkillInstall(kitup.InstallWorkflowOptions{
@@ -130,8 +130,8 @@ For Cobra CLIs, the adapter does not own installer behavior; it only wires Cobra
 
 ```go
 import (
-	kitup "github.com/samzong/kitup/go"
-	kitupcobra "github.com/samzong/kitup/go-cobra"
+	kitup "github.com/lathe-cli/kitup/go"
+	kitupcobra "github.com/lathe-cli/kitup/go-cobra"
 )
 
 root.AddCommand(kitupcobra.NewSkillCommand(kitupcobra.Options{

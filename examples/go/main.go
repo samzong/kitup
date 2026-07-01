@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	kitup "github.com/samzong/kitup/go"
+	kitup "github.com/lathe-cli/kitup/go"
 )
 
 func main() {

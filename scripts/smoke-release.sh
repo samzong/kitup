@@ -46,14 +46,14 @@ smoke_go() {
 	dir="$(mktemp -d "$tmp/go.XXXXXX")"
 	cd "$dir"
 	go mod init kitup-release-smoke >/dev/null
-	go get "github.com/samzong/kitup/go@v$version" >/dev/null
+	go get "github.com/lathe-cli/kitup/go@v$version" >/dev/null
 	cat > main.go <<'GO'
 package main
 
 import (
 	"fmt"
 
-	kitup "github.com/samzong/kitup/go"
+	kitup "github.com/lathe-cli/kitup/go"
 )
 
 func main() {
@@ -74,16 +74,16 @@ smoke_go_cobra() {
 	dir="$(mktemp -d "$tmp/go-cobra.XXXXXX")"
 	cd "$dir"
 	go mod init kitup-release-smoke-cobra >/dev/null
-	go get "github.com/samzong/kitup/go-cobra@v$version" >/dev/null
-	test "$(go list -m -f '{{.Version}}' github.com/samzong/kitup/go)" = "v$version"
+	go get "github.com/lathe-cli/kitup/go-cobra@v$version" >/dev/null
+	test "$(go list -m -f '{{.Version}}' github.com/lathe-cli/kitup/go)" = "v$version"
 	cat > main.go <<'GO'
 package main
 
 import (
 	"fmt"
 
-	kitup "github.com/samzong/kitup/go"
-	kitupcobra "github.com/samzong/kitup/go-cobra"
+	kitup "github.com/lathe-cli/kitup/go"
+	kitupcobra "github.com/lathe-cli/kitup/go-cobra"
 )
 
 func main() {

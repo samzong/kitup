@@ -51,7 +51,7 @@ write(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
 replaceOne(cargoPath, /^version = "([^"]+)"$/m, `version = "${nextVersion}"`);
 replaceOne(
   goCobraModPath,
-  /(github\.com\/samzong\/kitup\/go\s+)v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/,
+  /(github\.com\/lathe-cli\/kitup\/go\s+)v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/,
   `$1${tag}`,
 );
 

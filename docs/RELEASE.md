@@ -4,8 +4,8 @@
 
 - npm: `@kitup/sdk`
 - crates.io: `kitup`
-- Go module: `github.com/samzong/kitup/go`
-- Go Cobra adapter: `github.com/samzong/kitup/go-cobra`
+- Go module: `github.com/lathe-cli/kitup/go`
+- Go Cobra adapter: `github.com/lathe-cli/kitup/go-cobra`
 
 ## Normal Release
 

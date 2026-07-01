@@ -15,7 +15,7 @@ Do not open a public issue for a vulnerability.
 
 Use GitHub's private vulnerability reporting flow:
 
-https://github.com/samzong/kitup/security/advisories/new
+https://github.com/lathe-cli/kitup/security/advisories/new
 
 If that flow is unavailable, open a minimal public issue asking for maintainer contact without including exploit details.
 
@@ -40,4 +40,3 @@ Out of scope:
 - Vulnerabilities in downstream agent hosts.
 - Arbitrary behavior inside user-authored skill content.
 - Requests to execute skill scripts. `kitup` does not execute files from a skill directory.
-

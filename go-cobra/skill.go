@@ -3,7 +3,7 @@ package kitupcobra
 import (
 	"io"
 
-	kitup "github.com/samzong/kitup/go"
+	kitup "github.com/lathe-cli/kitup/go"
 	"github.com/spf13/cobra"
 )
 
