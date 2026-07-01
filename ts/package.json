@@ -6,13 +6,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/samzong/kitup",
+    "url": "https://github.com/lathe-cli/kitup",
     "directory": "ts"
   },
   "bugs": {
-    "url": "https://github.com/samzong/kitup/issues"
+    "url": "https://github.com/lathe-cli/kitup/issues"
   },
-  "homepage": "https://github.com/samzong/kitup#readme",
+  "homepage": "https://github.com/lathe-cli/kitup#readme",
   "keywords": [
     "agent",
     "skills",

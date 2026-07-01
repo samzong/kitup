@@ -88,10 +88,10 @@ Implemented functions:
 
 ## Go
 
-Module: `github.com/samzong/kitup/go`
+Module: `github.com/lathe-cli/kitup/go`
 
 ```go
-import kitup "github.com/samzong/kitup/go"
+import kitup "github.com/lathe-cli/kitup/go"
 ```
 
 Primitive install call:
@@ -145,7 +145,7 @@ Implemented functions:
 - `UninstallBundledSkill(opts)`
 - `InstallUX`
 
-Optional Cobra adapter module: `github.com/samzong/kitup/go-cobra`
+Optional Cobra adapter module: `github.com/lathe-cli/kitup/go-cobra`
 
 - `NewSkillCommand(opts)`
 - `NewInstallCommand(opts)`

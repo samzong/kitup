@@ -92,8 +92,8 @@ Use `make release-patch`, `make release-minor`, or `make release-major` from a c
 
 - `@kitup/sdk`
 - `kitup` on crates.io
-- `github.com/samzong/kitup/go` through the `go/vX.Y.Z` tag
-- `github.com/samzong/kitup/go-cobra` through the `go-cobra/vX.Y.Z` tag
+- `github.com/lathe-cli/kitup/go` through the `go/vX.Y.Z` tag
+- `github.com/lathe-cli/kitup/go-cobra` through the `go-cobra/vX.Y.Z` tag
 - GitHub Release notes
 
 See [docs/RELEASE.md](docs/RELEASE.md) for the release flow, first npm release recovery, and public install smoke check.
