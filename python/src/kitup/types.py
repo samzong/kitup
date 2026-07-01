@@ -10,6 +10,13 @@ Scope = Literal["user", "project"]
 
 
 @dataclass(frozen=True)
+class BaseOptions:
+    home: str | None = None
+    cwd: str | None = None
+    hosts_file: str | None = None
+
+
+@dataclass(frozen=True)
 class Host:
     id: str
     display_name: str
@@ -25,6 +32,13 @@ class Host:
 class HostSpec:
     hosts: list[Host]
     schema_version: int = 1
+
+
+@dataclass
+class TargetGroup:
+    host_ids: list[str] = field(default_factory=list)
+    skill_name: str = ""
+    target_dir: str = ""
 
 
 @dataclass(frozen=True)
@@ -66,6 +80,29 @@ class NormalizedSkillBundle:
     files: list[BundleFile]
     by_path: dict[str, BundleFile]
     label: str | None = None
+
+
+TargetResult = dict[str, object]
+TargetSkip = dict[str, object]
+TargetConflict = dict[str, object]
+TargetError = dict[str, str]
+
+
+@dataclass(frozen=True)
+class InstallReport:
+    installed: list[TargetResult] = field(default_factory=list)
+    updated: list[TargetResult] = field(default_factory=list)
+    skipped: list[TargetSkip] = field(default_factory=list)
+    conflicts: list[TargetConflict] = field(default_factory=list)
+    errors: list[TargetError] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class UninstallReport:
+    removed: list[TargetResult] = field(default_factory=list)
+    skipped: list[TargetSkip] = field(default_factory=list)
+    conflicts: list[TargetConflict] = field(default_factory=list)
+    errors: list[TargetError] = field(default_factory=list)
 
 
 INSTALL_UX = {
