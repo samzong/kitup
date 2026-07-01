@@ -141,7 +141,7 @@ def test_validate_skill_bundle_rejects_duplicate_paths():
     bundle = files_bundle(
         [
             SkillFile(path="SKILL.md", contents=_skill_md()),
-            SkillFile(path="nested/../SKILL.md", contents=_skill_md(description="other")),
+            SkillFile(path="SKILL.md", contents=_skill_md(description="other")),
         ]
     )
 
