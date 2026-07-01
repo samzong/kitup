@@ -10,13 +10,16 @@ from kitup import (
     agent_selector_from_flags,
     classify_install_workflow_exit,
     directory_bundle,
+    github_bundle,
     install_flag_error,
     install_workflow_error,
     parse_install_flags,
+    plan_bundled_skill,
     parse_scope_flag,
     resolve_install_selection,
     run_bundled_skill_install_with_io,
 )
+from kitup.types import GitHubBundleOptions, SkillFile
 from kitup.workflow import split_flag_values
 
 
@@ -165,6 +168,45 @@ def test_resolve_install_selection_tty_prompts_for_multiple_detected_hosts(tmp_p
     assert selection.needs_confirmation is True
 
 
+def test_resolve_install_selection_explicit_agents_with_unknown_host_is_pure_error(
+    tmp_path,
+):
+    home = tmp_path / "home"
+    workspace = tmp_path / "workspace"
+    hosts_file = tmp_path / "hosts.json"
+    home.mkdir()
+    workspace.mkdir()
+    write_hosts_file(
+        hosts_file,
+        [
+            {
+                "id": "codex",
+                "displayName": "Codex",
+                "projectSkillsDirs": [".agents/skills"],
+                "userSkillsDirs": ["~/.agents/skills"],
+                "detect": ["~/.codex"],
+                "status": "verified",
+            }
+        ],
+    )
+
+    selection = resolve_install_selection(
+        InstallSelectionOptions(
+            base=BaseOptions(home=str(home), cwd=str(workspace), hosts_file=str(hosts_file)),
+            scope="user",
+            agents=["codex", "missing-agent"],
+            stdin_tty=False,
+            yes=False,
+        )
+    )
+
+    assert selection.action == "error"
+    assert selection.selected_host_ids == []
+    assert selection.candidate_host_ids == []
+    assert selection.detected_host_ids == []
+    assert selection.errors == [{"agent": "missing-agent", "reason": "unknown-host"}]
+
+
 def test_classify_install_workflow_exit_reports_conflict():
     exit_info = classify_install_workflow_exit(
         {
@@ -241,3 +283,63 @@ def test_run_bundled_skill_install_scope_prompt_and_top_level_exports(tmp_path):
     assert kitup.install_flag_error is install_flag_error
     assert kitup.install_workflow_error is install_workflow_error
     assert kitup.run_bundled_skill_install_with_io is run_bundled_skill_install_with_io
+
+
+def test_plan_bundled_skill_uses_single_github_snapshot(monkeypatch, tmp_path):
+    home = tmp_path / "home"
+    workspace = tmp_path / "workspace"
+    home.mkdir()
+    workspace.mkdir()
+
+    fetch_calls: list[str] = []
+
+    def fake_fetch_with_metadata(options):
+        fetch_calls.append(f"{options.owner}/{options.repo}@{options.ref}")
+        return (
+            [
+                SkillFile(
+                    path="SKILL.md",
+                    contents="---\nname: github-basic\ndescription: demo\n---\n",
+                ),
+                SkillFile(path="references/guide.md", contents="Guide\n"),
+            ],
+            {
+                "source": "github",
+                "source_id": "github:acme/skills/skills/github-basic",
+                "version": "main",
+                "provenance": {
+                    "owner": "acme",
+                    "repo": "skills",
+                    "path": "skills/github-basic",
+                    "ref": "main",
+                    "resolvedCommit": "abc123",
+                },
+            },
+        )
+
+    def unexpected_refetch(_options):
+        raise AssertionError("bundle was re-fetched after snapshot resolution")
+
+    monkeypatch.setattr("kitup.install.fetch_github_directory_with_metadata", fake_fetch_with_metadata)
+    monkeypatch.setattr("kitup.bundle.fetch_github_directory", unexpected_refetch)
+
+    report = plan_bundled_skill(
+        InstallOptions(
+            base=BaseOptions(home=str(home), cwd=str(workspace)),
+            app_id="example-cli",
+            skill_bundle=github_bundle(
+                GitHubBundleOptions(
+                    owner="acme",
+                    repo="skills",
+                    path="skills/github-basic",
+                    ref="main",
+                )
+            ),
+            scope="user",
+            agents=["codex"],
+        )
+    )
+
+    assert fetch_calls == ["acme/skills@main"]
+    assert report.errors == []
+    assert [item.skill_name for item in report.installed] == ["github-basic"]

@@ -11,10 +11,10 @@ from .bundle import (
     FilesBundle,
     GitHubBundle,
     copy_normalized_bundle,
-    compute_bundle_content_hash,
+    compute_normalized_bundle_content_hash,
     normalize_directory_bundle,
     normalize_files_bundle,
-    validate_skill_bundle,
+    validate_normalized_skill_bundle,
 )
 from .hosts import detect_hosts, load_host_spec, resolve_hosts
 from .types import (
@@ -179,11 +179,11 @@ def install_or_plan(options: InstallOptions, *, write: bool) -> InstallReport:
         )
         return empty_install_report([TargetError(reason=reason)])
 
-    info = validate_skill_bundle(options.skill_bundle, cwd=options.base.cwd)
+    info = validate_normalized_skill_bundle(normalized)
     if not info.valid or not info.skill_name:
         return empty_install_report([TargetError(reason=info.error_code or "invalid-skill-bundle")])
 
-    digest = compute_bundle_content_hash(options.skill_bundle, cwd=options.base.cwd)
+    digest = compute_normalized_bundle_content_hash(normalized)
     targets, errors = _resolve_install_targets_with_errors(
         options.base,
         options.agents,

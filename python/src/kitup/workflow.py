@@ -108,11 +108,12 @@ def resolve_install_selection(options: InstallSelectionOptions) -> InstallSelect
                 stdin_tty and not options.yes,
             )
         selected, errors = resolve_hosts(options.agents, spec.hosts)
+        if errors:
+            return _error_selection(errors, [])
         return _install_selection(
             [host.id for host in selected],
             [],
             stdin_tty and not options.yes,
-            errors,
         )
 
     detected = detect_hosts(options.base, scope=options.scope)

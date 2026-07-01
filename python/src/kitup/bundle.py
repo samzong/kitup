@@ -54,6 +54,10 @@ def validate_skill_bundle(bundle: SkillBundle, cwd: str | None = None) -> SkillI
     except Exception:
         return SkillInfo(valid=False, error_code="invalid-skill-bundle")
 
+    return validate_normalized_skill_bundle(normalized)
+
+
+def validate_normalized_skill_bundle(normalized: NormalizedSkillBundle) -> SkillInfo:
     skill_md = normalized.by_path.get("SKILL.md")
     if skill_md is None:
         return SkillInfo(valid=False, error_code="missing-skill-md")
@@ -78,6 +82,10 @@ def validate_skill_bundle(bundle: SkillBundle, cwd: str | None = None) -> SkillI
 
 def compute_bundle_content_hash(bundle: SkillBundle, cwd: str | None = None) -> str:
     normalized = normalize_skill_bundle(bundle, cwd=cwd)
+    return compute_normalized_bundle_content_hash(normalized)
+
+
+def compute_normalized_bundle_content_hash(normalized: NormalizedSkillBundle) -> str:
     digest = hashlib.sha256()
     for file in normalized.files:
         digest.update(file.path.encode("utf-8"))
