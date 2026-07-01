@@ -11,6 +11,7 @@ TS_DIR := ts
 GO_DIR := go
 GO_COBRA_DIR := go-cobra
 RUST_DIR := rust
+PYTHON_DIR := python
 EXAMPLE_TS_DIR := examples/ts
 EXAMPLE_GO_DIR := examples/go
 EXAMPLE_RUST_DIR := examples/rust
