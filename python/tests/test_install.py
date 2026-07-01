@@ -1,12 +1,14 @@
 import json
 
-from kitup import directory_bundle, resolve_install_targets
-from kitup.bundle import compute_bundle_content_hash
-from kitup.install import (
+import kitup
+from kitup import (
+    directory_bundle,
     install_bundled_skill,
+    resolve_install_targets,
     uninstall_bundled_skill,
     update_bundled_skill,
 )
+from kitup.bundle import compute_bundle_content_hash
 from kitup.types import BaseOptions, InstallOptions, UninstallOptions
 
 
@@ -159,6 +161,8 @@ def test_install_update_uninstall_round_trip(tmp_path):
     script = skill / "bin" / "run.sh"
     script.write_text("#!/bin/sh\necho updated\n", encoding="utf-8")
     script.chmod(0o755)
+    legacy = skill / "legacy.txt"
+    legacy.write_text("remove me on update\n", encoding="utf-8")
 
     home = tmp_path / "home"
     workspace = tmp_path / "workspace"
@@ -181,6 +185,7 @@ def test_install_update_uninstall_round_trip(tmp_path):
     assert (target / "SKILL.md").read_text(encoding="utf-8").startswith("---\nname: basic\n")
     assert (target / "bin" / "run.sh").read_text(encoding="utf-8") == "#!/bin/sh\necho updated\n"
     assert (target / "bin" / "run.sh").stat().st_mode & 0o777 == 0o755
+    assert (target / "legacy.txt").read_text(encoding="utf-8") == "remove me on update\n"
     assert json.loads((target / ".kitup.json").read_text(encoding="utf-8")) == {
         "schemaVersion": 1,
         "appId": "kitup-python-test",
@@ -190,11 +195,13 @@ def test_install_update_uninstall_round_trip(tmp_path):
     }
 
     script.write_text("#!/bin/sh\necho second\n", encoding="utf-8")
+    legacy.unlink()
 
     update_report = update_bundled_skill(install_options)
 
     assert len(update_report.updated) == 1
     assert (target / "bin" / "run.sh").read_text(encoding="utf-8") == "#!/bin/sh\necho second\n"
+    assert not (target / "legacy.txt").exists()
 
     unchanged_report = update_bundled_skill(install_options)
 
@@ -257,3 +264,10 @@ def test_install_lifecycle_reports_owner_mismatch_and_missing(tmp_path):
 
     assert conflict_report.conflicts[0].reason == "owner-mismatch"
     assert missing_report.skipped[0].reason == "missing"
+
+
+def test_install_lifecycle_is_re_exported_from_top_level_package():
+    assert kitup.directory_bundle is directory_bundle
+    assert kitup.install_bundled_skill is install_bundled_skill
+    assert kitup.update_bundled_skill is update_bundled_skill
+    assert kitup.uninstall_bundled_skill is uninstall_bundled_skill

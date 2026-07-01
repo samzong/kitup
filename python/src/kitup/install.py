@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import tempfile
 from pathlib import Path
 
 from ._metadata import read_install_metadata, write_install_metadata
@@ -13,6 +14,7 @@ from .bundle import (
 from .hosts import detect_hosts, load_host_spec, resolve_hosts
 from .types import (
     BaseOptions,
+    BundleFile,
     Host,
     InstallOptions,
     InstallReport,
@@ -119,6 +121,61 @@ def update_bundled_skill(options: InstallOptions) -> InstallReport:
     return install_bundled_skill(options)
 
 
+def write_managed_bundle(
+    target_dir: Path,
+    *,
+    files: list[BundleFile],
+    app_id: str,
+    skill_name: str,
+    digest: str,
+    source: str,
+    replace: bool,
+) -> None:
+    if not replace:
+        copy_normalized_bundle(files, target_dir)
+        write_install_metadata(
+            target_dir,
+            app_id=app_id,
+            skill_name=skill_name,
+            digest=digest,
+            source=source,
+        )
+        return
+
+    target_dir.parent.mkdir(parents=True, exist_ok=True)
+    staged_dir = Path(
+        tempfile.mkdtemp(
+            prefix=f".{target_dir.name}.kitup-",
+            dir=target_dir.parent,
+        )
+    )
+    backup_dir: Path | None = None
+    try:
+        copy_normalized_bundle(files, staged_dir)
+        write_install_metadata(
+            staged_dir,
+            app_id=app_id,
+            skill_name=skill_name,
+            digest=digest,
+            source=source,
+        )
+        backup_dir = Path(
+            tempfile.mkdtemp(
+                prefix=f".{target_dir.name}.kitup-old-",
+                dir=target_dir.parent,
+            )
+        )
+        backup_dir.rmdir()
+        target_dir.replace(backup_dir)
+        staged_dir.replace(target_dir)
+        shutil.rmtree(backup_dir)
+    except Exception:
+        if backup_dir is not None and backup_dir.exists() and not target_dir.exists():
+            backup_dir.replace(target_dir)
+        shutil.rmtree(staged_dir, ignore_errors=True)
+        raise
+
+
 def install_or_plan(options: InstallOptions, *, write: bool) -> InstallReport:
     info = validate_skill_bundle(options.skill_bundle, cwd=options.base.cwd)
     if not info.valid or not info.skill_name:
@@ -140,13 +197,14 @@ def install_or_plan(options: InstallOptions, *, write: bool) -> InstallReport:
 
         if not target_dir.exists():
             if write:
-                copy_normalized_bundle(normalized.files, target_dir)
-                write_install_metadata(
+                write_managed_bundle(
                     target_dir,
                     app_id=options.app_id,
                     skill_name=info.skill_name,
                     digest=digest,
                     source="bundled",
+                    files=normalized.files,
+                    replace=False,
                 )
             report.installed.append(result)
             continue
@@ -165,13 +223,14 @@ def install_or_plan(options: InstallOptions, *, write: bool) -> InstallReport:
             continue
 
         if write:
-            copy_normalized_bundle(normalized.files, target_dir)
-            write_install_metadata(
+            write_managed_bundle(
                 target_dir,
                 app_id=options.app_id,
                 skill_name=info.skill_name,
                 digest=digest,
                 source=str(metadata.get("source", "bundled")),
+                files=normalized.files,
+                replace=True,
             )
         report.updated.append(result)
 
